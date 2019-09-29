@@ -16,8 +16,7 @@
 
 - Criar o arquivo .env
 - Criar um banco de dados MYSQL e alterar as configurações relacioados no .env
-- Executar as migrations 
-** php artisan migrate
+- Executar as migrations: php artisan migrate
 
 ## Executando
     php artisan serve
