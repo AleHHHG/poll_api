@@ -20,8 +20,8 @@ class PollController extends Controller
     public function store(Request $request)
     {
     	$validator = Validator::make($request->all(), [
-            'poll_description' => 'required',
-            'options' => 'required',
+            'poll_description' => 'required|string',
+            'options' => 'required|array',
         ]);
 	    if ($validator->fails()) {
 	    	return response()->json(['error' => 'Bad Request'], 400);
@@ -37,7 +37,7 @@ class PollController extends Controller
     {
     	$poll = Poll::findOrFail($id);
     	$validator = Validator::make($request->all(), [
-            'option_id' => 'required',
+            'option_id' => 'required|numeric',
         ]);
         if ($validator->fails()) {
 	    	return response()->json(['error' => 'Bad Request'], 400);
