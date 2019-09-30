@@ -14,7 +14,7 @@
 
 ## Setup
 
-- Instaler as dependencias: composer install
+- Instalar as dependências: composer install
 - Criar o arquivo .env
 - Criar um banco de dados MYSQL e alterar as configurações relacioados no .env
 - Executar as migrations: php artisan migrate
