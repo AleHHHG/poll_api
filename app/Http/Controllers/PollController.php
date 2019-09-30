@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Validator;
 
 class PollController extends Controller
 {
+	public function __construct()
+    {
+      $this->middleware('jwt.verify');
+    }
+
     public function show($id)
     {
         $poll = Poll::findOrFail($id);

@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+Route::post('register', 'AuthController@register');
+Route::post('login', 'AuthController@authenticate');
 
 Route::get('poll/{id}', 'PollController@show');
 Route::post('poll', 'PollController@store');

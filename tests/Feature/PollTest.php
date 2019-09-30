@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use App\Poll;
 use App\Option;
+use App\User;
 
 class PollTest extends TestCase
 {
@@ -14,14 +15,39 @@ class PollTest extends TestCase
 
     public function testShow()
     {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
         $poll = factory(Poll::class)->create();
-        $response = $this->get('/api/poll/'.$poll->id);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->get('/api/poll/'.$poll->id);
         $response->assertStatus(200);
     }
 
-    public function testShowotFounddRequest()
+    public function testShowWithoutToken()
     {
-        $response = $this->get('/api/poll/5555');
+        $poll = factory(Poll::class)->create();
+        $response = $this->get('/api/poll/'.$poll->id);
+        $response->assertStatus(401);
+    }
+
+    public function testShowInvalidToken()
+    {
+        $token = '123456';
+        $poll = factory(Poll::class)->create();
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->get('/api/poll/'.$poll->id);
+        $response->assertStatus(401);
+    }
+
+    public function testShowNotFounddRequest()
+    {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->get('/api/poll/5555');
         $response->assertStatus(404);
     }
 
@@ -31,9 +57,47 @@ class PollTest extends TestCase
         $response->assertStatus(405);
     }
 
-    public function testStoreBadRequest()
+    public function testStore()
+    {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
+            '/api/poll',
+            ['poll_description' => 'Test Poll', 'options' => ['Ola?', 'Ok?']]
+        );
+        $response->assertStatus(201);
+    }
+
+    public function testStoreWithoutToken()
     {
         $response = $this->post(
+            '/api/poll',
+            ['poll_description' => 'Test Poll', 'options' => ['Ola?', 'Ok?']]
+        );
+        $response->assertStatus(401);
+    }
+
+    public function testStoreInvalidToken()
+    {
+        $token = '123456';
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
+            '/api/poll',
+            ['poll_description' => 'Test Poll', 'options' => ['Ola?', 'Ok?']]
+        );
+        $response->assertStatus(401);
+    }
+    
+    public function testStoreBadRequest()
+    {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
             '/api/poll',
             ['poll_description' => 'Test Poll']
         );
@@ -56,6 +120,26 @@ class PollTest extends TestCase
 
     public function testVote()
     {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $poll = factory(Poll::class)->create();
+        $poll->options()->createMany(
+            factory(Option::class, 3)->create([
+                'poll_id' => $poll->id])->toArray()
+        );
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
+            '/api/poll/'.$poll->id.'/vote',
+            ['option_id' => $poll->options[0]->id]
+        );
+        $response->assertStatus(200)->assertJson([
+            'votes' => true,
+        ]);
+    }
+
+    public function testVoteWithoutToken()
+    {
         $poll = factory(Poll::class)->create();
         $poll->options()->createMany(
             factory(Option::class, 3)->create([
@@ -65,19 +149,42 @@ class PollTest extends TestCase
             '/api/poll/'.$poll->id.'/vote',
             ['option_id' => $poll->options[0]->id]
         );
-        $response->assertStatus(200)->assertJson([
-            'votes' => true,
+        $response->assertStatus(401)->assertJson([
+            'error' => true,
+        ]);
+    }
+
+    public function testVoteInvalidToken()
+    {
+        $token = '123456';
+        $poll = factory(Poll::class)->create();
+        $poll->options()->createMany(
+            factory(Option::class, 3)->create([
+                'poll_id' => $poll->id])->toArray()
+        );
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
+            '/api/poll/'.$poll->id.'/vote',
+            ['option_id' => $poll->options[0]->id]
+        );
+        $response->assertStatus(401)->assertJson([
+            'error' => true,
         ]);
     }
 
     public function testVoteBadRequest()
     {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
         $poll = factory(Poll::class)->create();
         $poll->options()->createMany(
             factory(Option::class, 3)->create(
                 ['poll_id' => $poll->id])->toArray()
         );
-        $response = $this->post(
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
             '/api/poll/'.$poll->id.'/vote',
             ['option__id' => $poll->options[0]->id]
         );
@@ -88,7 +195,11 @@ class PollTest extends TestCase
 
     public function testVotePollNotFound()
     {
-        $response = $this->post(
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
             '/api/poll/5555/vote',
             ['option_id' => 1]
         );
@@ -99,8 +210,12 @@ class PollTest extends TestCase
 
     public function testVoteOptionNotFound()
     {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
         $poll = factory(Poll::class)->create();
-        $response = $this->post(
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->post(
             '/api/poll/'.$poll->id.'/vote',
             ['option_id' => 200]
         );
@@ -111,6 +226,8 @@ class PollTest extends TestCase
 
     public function testVoteInvalidMethod()
     {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
         $response = $this->put(
             '/api/poll/1/vote',
             ['option_id' => 200]
@@ -120,6 +237,23 @@ class PollTest extends TestCase
 
     public function testStats()
     {
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $poll = factory(Poll::class)->create();
+        $poll->options()->createMany(
+            factory(Option::class, 3)->create(
+                ['poll_id' => $poll->id])->toArray()
+        );
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->get(
+            '/api/poll/'.$poll->id.'/stats'
+        );
+        $response->assertStatus(200);
+    }
+
+    public function testStatsWithoutToken()
+    {
         $poll = factory(Poll::class)->create();
         $poll->options()->createMany(
             factory(Option::class, 3)->create(
@@ -128,12 +262,36 @@ class PollTest extends TestCase
         $response = $this->get(
             '/api/poll/'.$poll->id.'/stats'
         );
-        $response->assertStatus(200);
+        $response->assertStatus(401)->assertJson([
+            'error' => true
+        ]);
+    }
+
+    public function testStatsInvalidToken()
+    {
+        $token = '123456';
+        $poll = factory(Poll::class)->create();
+        $poll->options()->createMany(
+            factory(Option::class, 3)->create(
+                ['poll_id' => $poll->id])->toArray()
+        );
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->get(
+            '/api/poll/'.$poll->id.'/stats'
+        );
+        $response->assertStatus(401)->assertJson([
+            'error' => true
+        ]);
     }
 
     public function testStatsPollNotFound()
     {
-        $response = $this->get(
+        $user = factory(User::class)->make();
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($user);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->get(
             '/api/poll/5555/stats'
         );
         $response->assertStatus(404)->assertExactJson([
@@ -141,12 +299,12 @@ class PollTest extends TestCase
         ]);
     }
 
-    public function testStatsBadRequest()
+    public function testStatsInvalidMethod()
     {
-        $response = $this->get(
+        $response = $this->post(
             '/api/poll/5555/stats'
         );
-        $response->assertStatus(404)->assertJson([
+        $response->assertStatus(405)->assertJson([
             'error' => true
         ]);
     }

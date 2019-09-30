@@ -52,7 +52,7 @@ class Handler extends ExceptionHandler
             return response()->json(['error' => str_replace('App\\', '', $exception->getModel()).' not found'], 404);
         }
         elseif ($exception instanceof MethodNotAllowedHttpException){
-             return response()->json(['error' => 'Method Not Allowed'], 405);
+            return response()->json(['error' => 'Method Not Allowed'], 405);
         }
 
         return parent::render($request, $exception);
