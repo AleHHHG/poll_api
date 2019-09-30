@@ -1,6 +1,6 @@
 # Configurações de setup
 
-## Pre requisitos
+## Pré requisitos
 
 - PHP >= 7.2.0
 - BCMath PHP Extension
@@ -14,6 +14,7 @@
 
 ## Setup
 
+- Instaler as dependencias: composer install
 - Criar o arquivo .env
 - Criar um banco de dados MYSQL e alterar as configurações relacioados no .env
 - Executar as migrations: php artisan migrate
